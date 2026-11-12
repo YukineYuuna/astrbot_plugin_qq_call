@@ -25,26 +25,31 @@ python -m pip install -r requirements.txt
 
 ## 配置
 
-1. 复制配置模板：
+AstrBot 的插件数据目录是 `data/plugin_data/astrbot_plugin_qq_call`。不要把配置、录音或 pid 放进插件代码目录。
+
+1. 建数据目录并复制模板：
 
 ```powershell
-Copy-Item config.example.json config.json
+$data = "data/plugin_data/astrbot_plugin_qq_call"
+New-Item -ItemType Directory -Force $data | Out-Null
+Copy-Item config.example.json "$data/config.json"
 ```
 
-2. 编辑 `config.json`：
+2. 编辑 `data/plugin_data/astrbot_plugin_qq_call/config.json`：
    - `llm`：OpenAI 兼容接口地址、key、模型；
    - `tts.provider`：`edge_tts` / `breeze_online` / `breeze_local`；
    - `audio`：扬声器、虚拟声卡、麦克风设备名；
    - `outgoing_call.contact_title`：对方聊天窗口的标题（QQ 备注）；
    - `outgoing_call.button_offset_from_right` / `button_offset_y`：电话按钮相对窗口右上角的位置，默认值适配常见 QQ NT；
+   - `data`：录音/TTS 输出目录和滚动清理（默认 `retention_hours=24`、`max_files=200`）；
    - 自动接听默认关闭；开启时 `auto_answer.allowed_callers` 必须非空。
 
 3. 在 AstrBot 插件配置里填：
    - `owner_qq`：唯一允许触发的主人 QQ；
    - `python_exe`：运行本插件的 Python；
-   - `config_file`：默认 `config.json`；
+   - `config_file`：默认 `config.json`，相对于 `data/plugin_data/astrbot_plugin_qq_call`；
    - `qq_call_dir` 留空即使用插件自身目录；
-   - `agent_args` 默认 `--config config.json`。
+   - `agent_args` 留空；配置文件由插件自动用 `--config` 传入。
 
 4. 在 QQ 设置里把麦克风明确选成虚拟声卡（如 `VB-Audio Cable A`），否则对方听不到 TTS。
 
@@ -64,16 +69,17 @@ Copy-Item config.example.json config.json
 → call_agent.py 在通话里回复
 ```
 
-先 dry-run 确认坐标：
+先 dry-run 确认坐标（在数据目录里执行）：
 
 ```powershell
-python place_call.py --config config.json
+$cfg = "data/plugin_data/astrbot_plugin_qq_call/config.json"
+python place_call.py --config $cfg
 ```
 
 确认后再真的拨：
 
 ```powershell
-python place_call.py --config config.json --call
+python place_call.py --config $cfg --call
 ```
 
 ## 三种 TTS
@@ -87,6 +93,7 @@ python place_call.py --config config.json --call
 ## 隐私
 
 - 配置、录音、日志都在本地；
+- 录音和 TTS 输出写在 `data/plugin_data/astrbot_plugin_qq_call`，按 `data.retention_hours` 和 `data.max_files` 自动清理；
 - 不要把自己的 `config.json`、QQ 号、key 提交到仓库；
 - 插件不包含任何特定角色的人格或声音。
 

@@ -30,6 +30,46 @@ def load_config(path: Path) -> dict:
     return json.loads(path.read_text(encoding="utf-8-sig"))
 
 
+def cleanup_outputs(folder: Path, retention_hours: float, max_files: int) -> None:
+    """Delete old call recordings/TTS files; never touches config.json."""
+    patterns = ("utterance-*.wav", "reply-*.mp3", "reply-*.wav", "test-tts.*")
+    files = []
+    for pattern in patterns:
+        files.extend(folder.glob(pattern))
+    now = time.time()
+    cutoff = now - max(1.0, retention_hours) * 3600
+    keep = []
+    for path in files:
+        try:
+            if path.stat().st_mtime < cutoff:
+                path.unlink(missing_ok=True)
+            else:
+                keep.append(path)
+        except OSError:
+            pass
+    keep.sort(key=lambda p: p.stat().st_mtime, reverse=True)
+    for path in keep[max(1, max_files):]:
+        try:
+            path.unlink(missing_ok=True)
+        except OSError:
+            pass
+
+
+def make_output_dir(config: dict, config_path: Path) -> Path:
+    data_conf = config.get("data") or {}
+    raw = str(data_conf.get("dir") or "").strip()
+    base = Path(raw).expanduser() if raw else config_path.resolve().parent
+    if not base.is_absolute():
+        base = config_path.resolve().parent / base
+    base.mkdir(parents=True, exist_ok=True)
+    cleanup_outputs(
+        base,
+        float(data_conf.get("retention_hours") or 24),
+        int(data_conf.get("max_files") or 200),
+    )
+    return base
+
+
 def clean_speech(text: str) -> str:
     s = text or ""
     s = re.sub(r"&&[^&]{1,40}&&", "", s)
@@ -283,7 +323,7 @@ def main() -> None:
     if not config_path.is_file():
         raise SystemExit(f"找不到 {config_path}，先复制 config.example.json")
     config = load_config(config_path)
-    base = config_path.resolve().parent
+    base = make_output_dir(config, config_path)
 
     if args.test_llm:
         print("LLM:", ask_llm(config, "只回一个字：好。"))
@@ -325,6 +365,12 @@ def main() -> None:
         to_wav(config, mp3, wav_reply)
         print(f"[tts] {time.time()-t0:.2f}s", flush=True)
         play_wav(config, wav_reply)
+        data_conf = config.get("data") or {}
+        cleanup_outputs(
+            base,
+            float(data_conf.get("retention_hours") or 24),
+            int(data_conf.get("max_files") or 200),
+        )
 
 
 if __name__ == "__main__":

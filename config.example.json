@@ -54,5 +54,10 @@
     "call_window_title": "语音通话",
     "timeout_seconds": 10
   },
+  "data": {
+    "dir": "",
+    "retention_hours": 24,
+    "max_files": 200
+  },
   "ffmpeg": "ffmpeg"
 }

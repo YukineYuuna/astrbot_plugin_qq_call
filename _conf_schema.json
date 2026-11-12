@@ -16,7 +16,7 @@
   },
   "config_file": {
     "type": "string",
-    "description": "qq-call 的 config.json 路径（相对 qq_call_dir）",
+    "description": "配置文件名或绝对路径；相对路径在 data/plugin_data/astrbot_plugin_qq_call 下",
     "default": "config.json"
   },
   "start_agent": {
@@ -31,12 +31,12 @@
   },
   "agent_args": {
     "type": "string",
-    "description": "传给 agent 的额外参数；call_agent.py 默认用 --config config.json",
-    "default": "--config config.json"
+    "description": "传给 agent 的额外参数；配置文件由插件自动用 --config 传入，不要重复填",
+    "default": ""
   },
   "agent_pid_file": {
     "type": "string",
-    "description": "防止重复启动的 PID 文件",
+    "description": "防止重复启动的 PID 文件；保存在 data/plugin_data/astrbot_plugin_qq_call 下",
     "default": "call_agent.pid"
   }
 }

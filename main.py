@@ -1,6 +1,7 @@
-"""AstrBot 工具示例：主人明确要求时，调用 extras/qq-call 的拨号脚本。
+"""AstrBot 工具：主人明确要求时，调用插件内置的拨号脚本。
 
-只做“发起拨号”这一件事；通话里的语音由 call_agent.py / 你配置的 agent 负责。
+只做“发起拨号”这一件事；通话里的语音由 call_agent.py 负责。
+配置、录音和 pid 都保存在 data/plugin_data/astrbot_plugin_qq_call。
 """
 from __future__ import annotations
 
@@ -15,6 +16,7 @@ from astrbot.api import logger
 from astrbot.api.event import AstrMessageEvent, filter
 from astrbot.api.event.filter import EventMessageType
 from astrbot.api.star import Context, Star
+from astrbot.core.star.star_tools import StarTools
 
 CREATE_NO_WINDOW = 0x08000000
 
@@ -43,11 +45,20 @@ class QQCallPlugin(Star):
             return Path(raw).expanduser()
         return Path(__file__).resolve().parent
 
+    def _data_dir(self) -> Path:
+        directory = StarTools.get_data_dir("astrbot_plugin_qq_call")
+        directory.mkdir(parents=True, exist_ok=True)
+        return directory
+
     def _python(self) -> str:
         return str(self.config.get("python_exe", "") or "python")
 
     def _config_file(self) -> Path:
-        return self._dir() / str(self.config.get("config_file", "") or "config.json")
+        raw = str(self.config.get("config_file", "") or "config.json").strip()
+        path = Path(raw).expanduser()
+        if path.is_absolute():
+            return path
+        return self._data_dir() / path
 
     def _start_agent(self) -> None:
         if not bool(self.config.get("start_agent", True)):
@@ -57,14 +68,15 @@ class QQCallPlugin(Star):
         if not script.is_file():
             logger.warning("qq_call: agent 脚本不存在：%s", script)
             return
-        pid_file = directory / str(self.config.get("agent_pid_file", "") or "call_agent.pid")
+        data_dir = self._data_dir()
+        pid_file = data_dir / str(self.config.get("agent_pid_file", "") or "call_agent.pid")
         try:
             old = int(pid_file.read_text(encoding="ascii").strip() or "0")
         except Exception:
             old = 0
         if pid_alive(old):
             return
-        args = [self._python(), str(script)]
+        args = [self._python(), str(script), "--config", str(self._config_file())]
         extra = str(self.config.get("agent_args", "") or "").strip()
         if extra:
             args.extend(shlex.split(extra))
