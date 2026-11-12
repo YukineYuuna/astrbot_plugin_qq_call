@@ -2,7 +2,7 @@ name: astrbot_plugin_qq_call
 display_name: QQ 主动拨号
 desc: 主人明确要求时，调用插件内置的 place_call.py 发起 Windows QQ 原生语音通话；录音与配置存放在 AstrBot 插件数据目录
 help: 只允许配置的 owner_qq 触发；先按 README 在 data/plugin_data/astrbot_plugin_qq_call 配好 config.json 和联系人标题
-version: 0.1.1
+version: 0.1.2
 author: qq-call
 repo: https://github.com/YukineYuuna/astrbot_plugin_qq_call
 astrbot_version: ">=4.11.0"
